@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FMC Ecosystem - V44 Final Master</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root { --p: #bc13fe; --c: #00f2ff; --bg: #0d0221; --gold: #ffd700; --red: #ff0055; }
+        body { background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; overflow: hidden; height: 100vh; margin: 0; }
+        .neon-card { background: rgba(20, 10, 40, 0.9); border: 1px solid var(--p); border-radius: 20px; box-shadow: 0 0 20px rgba(188, 19, 254, 0.15); }
+        .nav-dock { position: fixed; bottom: 0; left: 0; right: 0; height: 80px; background: #0a0118; border-top: 2px solid var(--p); display: flex; align-items: center; justify-content: space-around; z-index: 1000; padding-bottom: 10px; }
+        .nav-link { color: #555; display: flex; flex-direction: column; align-items: center; gap: 4px; transition: 0.3s; width: 25%; cursor: pointer; }
+        .nav-link.active { color: var(--c); text-shadow: 0 0 10px var(--c); }
+        .modal-wrap { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.98); z-index: 2000; flex-direction: column; padding: 20px; overflow-y: auto; }
+        .close-x { position: absolute; top: 20px; left: 20px; width: 40px; height: 40px; background: var(--red); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; cursor: pointer; z-index: 3000; }
+        
+        /* Language Switches UI */
+        .lang-switch { display: flex; gap: 5px; margin-left: 10px; }
+        .lang-btn { background: rgba(0, 242, 255, 0.1); border: 1px solid var(--c); padding: 4px 8px; border-radius: 8px; font-size: 10px; color: var(--c); font-weight: bold; cursor: pointer; }
+        .lang-btn.active { background: var(--c); color: black; }
+
+        /* Rocket Engine */
+        #rock-area { position: relative; width: 100%; height: 260px; background: #05010d url('https://www.transparenttextures.com/patterns/stardust.png'); border: 2px solid #333; border-radius: 25px; overflow: hidden; }
+        #rocket-canvas { position: absolute; inset: 0; z-index: 1; }
+        #rock-obj { position: absolute; bottom: 20px; left: 20px; font-size: 45px; z-index: 10; transform: rotate(45deg); filter: drop-shadow(0 0 10px var(--c)); transition: 0.1s linear; }
+        #rock-mult { position: absolute; top: 25%; left: 50%; transform: translate(-50%, -50%); font-size: 60px; font-weight: 900; color: var(--c); z-index: 5; }
+        .gold-beep { color: var(--gold) !important; text-shadow: 0 0 35px var(--gold) !important; animation: whale-pulse 0.4s infinite; }
+        @keyframes whale-pulse { 0%, 100% { transform: translate(-50%, -50%) scale(1); } 50% { transform: translate(-50%, -50%) scale(1.1); } }
+
+        /* Tree UI */
+        .tree-circle { position: relative; width: 300px; height: 300px; display: flex; align-items: center; justify-content: center; margin-top: 15px; }
+        .node { position: absolute; width: 60px; height: 60px; background: #fff; border-radius: 50%; border: 3px solid #444; display: flex; align-items: center; justify-content: center; z-index: 50; cursor: pointer; color: black; font-size: 20px; }
+        .node.selected { border-color: var(--red); box-shadow: 0 0 20px var(--red); transform: scale(1.1); }
+        .bet-lbl { position: absolute; top: -18px; background: var(--red); color: white; font-size: 9px; font-weight: 900; padding: 2px 6px; border-radius: 8px; display: none; }
+        .chip { background: rgba(255,255,255,0.05); border: 1px solid #444; padding: 10px 14px; border-radius: 15px; font-size: 11px; font-weight: 900; cursor: pointer; min-width: 50px; text-align: center; }
+        .chip.active { border-color: var(--gold); color: var(--gold); box-shadow: 0 0 15px var(--gold); background: rgba(255,215,0,0.1); }
+        .winner-final { border-color: var(--gold) !important; border-width: 5px !important; box-shadow: 0 0 40px var(--gold) !important; transform: scale(1.25) !important; }
+    </style>
+</head>
+<body>
+
+    <header class="p-4 flex justify-between items-center">
+        <div class="lang-switch">
+            <button onclick="setLang('ar')" id="btn-ar" class="lang-btn">AR</button>
+            <button onclick="setLang('en')" id="btn-en" class="lang-btn">EN</button>
+        </div>
+        <div class="neon-card flex-1 mx-2 p-3 text-center border-b-2 border-cyan-400">
+            <p id="txt-balance-lbl" class="text-[8px] text-gray-400 font-black uppercase">Balance</p>
+            <h2 class="text-2xl font-black text-white"><span class="balance-val">205000.00</span></h2>
+        </div>
+        <div onclick="openM('daily-modal')" class="w-12 h-12 neon-card flex items-center justify-center text-gold cursor-pointer animate-bounce"><i class="fas fa-gift text-2xl"></i></div>
+    </header>
+
+    <main class="flex-1 overflow-y-auto px-6 pb-32">
+        <section id="v-home" class="space-y-4 pt-4">
+            <div onclick="openM('game-modal')" class="neon-card p-4 flex justify-between items-center border-l-4 border-cyan-400 cursor-pointer">
+                <div><h3 class="font-black italic text-white uppercase">Lucky Tree</h3><p class="text-[9px] text-cyan-400">CLASSIC MODE</p></div>
+                <i class="fas fa-tree text-cyan-400 text-2xl"></i>
+            </div>
+            <div onclick="openM('rock-modal')" class="neon-card p-4 flex justify-between items-center border-l-4 border-purple-500 cursor-pointer">
+                <div><h3 class="font-black italic text-white uppercase">Rocket X</h3><p class="text-[9px] text-purple-400 uppercase">SMART ENGINE</p></div>
+                <i class="fas fa-rocket text-purple-500 text-2xl"></i>
+            </div>
+
+            <div class="py-6 flex flex-col items-center">
+                <div onclick="tap(event)" class="w-40 h-40 rounded-full border-8 border-cyan-400 flex items-center justify-center bg-black shadow-[0_0_30px_rgba(0,242,255,0.2)] active:scale-90 transition cursor-pointer mb-4">
+                    <span class="text-4xl font-black italic text-cyan-400">FMC</span>
+                </div>
+                <button id="txt-upgrade" onclick="openM('mine-modal')" class="bg-gradient-to-r from-purple-600 to-cyan-500 p-2 px-6 rounded-xl font-black text-[10px] italic shadow-lg">⚡ UPGRADE MINING</button>
+            </div>
+        </section>
+
+        <section id="v-tasks" class="hidden pt-4 space-y-6">
+            <div class="neon-card p-5 border-t-2 border-cyan-400">
+                <h3 id="txt-task-title" class="text-sm font-black text-cyan-400 mb-4 uppercase text-center italic">Tasks List (50 Ad Tasks)</h3>
+                <div id="tasks-list" class="space-y-3 h-[400px] overflow-y-auto pr-1"></div>
+            </div>
+        </section>
+
+        <section id="v-refs" class="hidden pt-4"><div id="refs-list" class="space-y-2 h-[400px] overflow-y-auto px-2"></div></section>
+
+        <section id="v-wallet" class="hidden pt-10 text-center">
+            <h3 class="font-black text-cyan-400 italic mb-6">AIRDROP DROP</h3>
+            <div class="neon-card p-6 mx-2 space-y-4">
+                <input type="text" id="inp-wallet" placeholder="USDT TRC20 Wallet" class="w-full bg-black border border-gray-800 p-4 rounded-xl text-center outline-none focus:border-cyan-400">
+                <button id="txt-save-wallet" onclick="alert('Wallet Saved!')" class="w-full bg-cyan-600 text-black py-4 rounded-xl font-black uppercase">Save Wallet</button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modals -->
+    <div id="game-modal" class="modal-wrap" style="padding:0;">
+        <div class="close-x" onclick="closeM('game-modal')"><i class="fas fa-times"></i></div>
+        <div class="flex flex-col items-center mt-12 px-4">
+            <div class="grid grid-cols-3 gap-2 w-full mb-4">
+                <div class="neon-card p-2 text-center border-yellow-500 font-black"><p class="text-[7px]">TIMER</p><span id="timer" class="text-yellow-400 text-xl">30</span></div>
+                <div class="neon-card p-2 text-center border-cyan-500 font-black"><p class="text-[7px]">WALLET</p><span class="balance-val text-[10px]">0</span></div>
+                <div class="neon-card p-2 text-center border-green-500 font-black"><p class="text-[7px]">PROFIT</p><span id="cum-profit" class="text-green-400 text-[10px]">0</span></div>
+            </div>
+            <div id="win-txt" class="h-6 text-gold font-black text-sm italic mb-2 text-center"></div>
+            <div class="tree-circle" id="arena">
+                <div class="w-20 h-20 bg-black rounded-full border-2 border-cyan-400 flex items-center justify-center text-[10px] font-black text-cyan-400 text-center">FMC<br>LUCKY</div>
+            </div>
+            <div class="mt-6 flex flex-wrap gap-2 justify-center">
+                <div onclick="setU(10, this)" class="chip">10</div>
+                <div onclick="setU(100, this)" class="chip active">100</div>
+                <div onclick="setU(1000, this)" class="chip">1K</div>
+                <div onclick="setU(5000, this)" class="chip text-yellow-500">5K</div>
+                <div onclick="setU(10000, this)" class="chip text-purple-400">10K</div>
+            </div>
+            <div id="history-box" class="w-full h-12 neon-card mt-6 flex items-center gap-2 px-3 overflow-x-auto border-gray-800"></div>
+        </div>
+    </div>
+
+    <div id="rock-modal" class="modal-wrap">
+        <div class="close-x" onclick="closeRockM()"><i class="fas fa-times"></i></div>
+        <div class="p-4 mt-12 text-center">
+            <div class="grid grid-cols-2 gap-2 mb-2">
+                <div class="neon-card p-2 border-cyan-400"><p class="text-[7px] text-gray-400">WALLET</p><span class="balance-val font-black text-xs">0</span></div>
+                <div class="neon-card p-2 border-gold text-gold"><p class="text-[7px]">DAY PROFIT</p><span id="rock-day-profit" class="font-black text-xs">0.00</span></div>
+            </div>
+            <div id="rock-area">
+                <canvas id="rocket-canvas"></canvas>
+                <div id="rock-mult">1.00x</div>
+                <div id="rock-obj">🚀</div>
+                <div id="rock-boom" class="hidden absolute inset-0 bg-red-900/40 flex items-center justify-center font-black text-4xl text-red-500 z-50 italic">BOOM!</div>
+            </div>
+            <div id="rock-hist" class="flex gap-2 mt-4 overflow-x-auto h-8 px-2 neon-card border-gray-800"></div>
+            <div class="mt-4 space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="neon-card p-2 flex flex-col items-center">
+                        <span class="text-[8px] text-gray-400 mb-1">BET AMOUNT</span>
+                        <div class="flex items-center gap-2">
+                            <button onmousedown="stRep(()=>adjRB(-100))" onmouseup="spRep()" onmouseleave="spRep()" ontouchstart="stRep(()=>adjRB(-100))" ontouchend="spRep()" class="w-10 h-10 bg-gray-800 rounded flex items-center justify-center">-</button>
+                            <span id="r-bet" class="font-black text-sm">100</span>
+                            <button onmousedown="stRep(()=>adjRB(100))" onmouseup="spRep()" onmouseleave="spRep()" ontouchstart="stRep(()=>adjRB(100))" ontouchend="spRep()" class="w-10 h-10 bg-gray-800 rounded flex items-center justify-center">+</button>
+                        </div>
+                    </div>
+                    <div class="neon-card p-2 flex flex-col items-center">
+                        <span class="text-[8px] text-gray-400 mb-1">AUTO STOP</span>
+                        <div class="flex items-center gap-2">
+                            <button onmousedown="stRep(()=>adjAS(-0.1))" onmouseup="spRep()" onmouseleave="spRep()" ontouchstart="stRep(()=>adjAS(-0.1))" ontouchend="spRep()" class="w-10 h-10 bg-gray-800 rounded flex items-center justify-center">-</button>
+                            <span id="as-val" class="font-black text-gold text-sm">2.0</span>
+                            <button onmousedown="stRep(()=>adjAS(0.1))" onmouseup="spRep()" onmouseleave="spRep()" ontouchstart="stRep(()=>adjAS(0.1))" ontouchend="spRep()" class="w-10 h-10 bg-gray-800 rounded flex items-center justify-center">+</button>
+                        </div>
+                    </div>
+                </div>
+                <button id="r-start" onclick="startRocket()" class="w-full bg-purple-600 py-5 rounded-2xl font-black text-xl italic uppercase shadow-xl">Start Rocket</button>
+                <button id="r-cash" onclick="cashOutRockManual()" class="hidden w-full bg-gold text-black py-5 rounded-2xl font-black text-xl italic animate-pulse">Cash Out</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="mine-modal" class="modal-wrap">
+        <div class="close-x" onclick="closeM('mine-modal')"><i class="fas fa-times"></i></div>
+        <div class="mt-16 text-center space-y-6 px-4">
+            <h3 class="text-2xl font-black text-purple-500 italic">UPGRADE MINING</h3>
+            <div class="neon-card p-4 border-l-4 border-cyan-500 flex justify-between items-center"><span>Basic (0.25 TON)</span><button onclick="alert('Send TON');autoS=1;closeM('mine-modal')" class="bg-cyan-600 text-black px-4 py-2 rounded-lg font-black text-[10px]">BUY</button></div>
+            <div class="neon-card p-4 border-l-4 border-gold flex justify-between items-center text-gold"><span>Ultra (1.00 TON)</span><button onclick="alert('Send TON');autoS=10;closeM('mine-modal')" class="bg-gold text-black px-4 py-2 rounded-lg font-black text-[10px]">BUY</button></div>
+        </div>
+    </div>
+
+    <div id="daily-modal" class="modal-wrap flex items-center justify-center">
+        <div class="close-x" onclick="closeM('daily-modal')"><i class="fas fa-times"></i></div>
+        <div class="neon-card p-10 text-center space-y-6">
+            <i class="fas fa-gift text-7xl text-gold"></i>
+            <h2 id="daily-title" class="text-2xl font-black text-gold">DAILY REWARD</h2>
+            <p id="daily-note" class="text-white text-sm">مرة واحدة كل 24 ساعة</p>
+            <div class="text-3xl font-black text-cyan-400">+100.00 FMC</div>
+            <button id="claim-btn" onclick="claimDaily()" class="w-full bg-gold text-black py-4 rounded-xl font-black text-lg">CLAIM GIFT</button>
+        </div>
+    </div>
+
+    <nav class="nav-dock">
+        <div onclick="nav(this, 'home')" class="nav-link active"><i class="fas fa-house"></i><span class="nav-txt">HOME</span></div>
+        <div onclick="nav(this, 'tasks')" class="nav-link"><i class="fas fa-list-check"></i><span class="nav-txt">TASKS</span></div>
+        <div onclick="nav(this, 'refs')" class="nav-link"><i class="fas fa-users-gear"></i><span class="nav-txt">REFS</span></div>
+        <div onclick="nav(this, 'wallet')" class="nav-link"><i class="fas fa-wallet"></i><span class="nav-txt">DROP</span></div>
+    </nav>
+
+    <script>
+        // --- Core Variables ---
+        let balance = 205000.0, energy = 500, autoS = 0, cumP = 0, rockDayP = 0, timer = 30, isLock = false, selCount = 0, unit = 100, hI;
+        let treeBets = Array(8).fill(0), historyArr = [], pieces = [];
+        const icons = ['🐔','🌶️','🍤','🥕','🐄','🍅','🐟','🥦'], mults = [25, 5, 15, 5, 20, 5, 15, 5];
+
+        // --- Translation Engine ---
+        const i18n = {
+            ar: { balance: "الرصيد", upgrade: "⚡ تطوير التعدين", tasksTitle: "قائمة المهام (50 مهمة)", saveWall: "حفظ المحفظة", dailyTitle: "المكافأة اليومية", dailyNote: "توقيت مصر: 12:00 AM", claim: "استلام الهدية", claimed: "تم الاستلام مسبقاً", nav: ["الرئيسية", "المهام", "الإحالات", "السحب"] },
+            en: { balance: "Balance", upgrade: "⚡ UPGRADE MINING", tasksTitle: "Tasks List (50 Ad Tasks)", saveWall: "Save Wallet", dailyTitle: "DAILY REWARD", dailyNote: "Next reward in 24h", claim: "CLAIM GIFT", claimed: "ALREADY CLAIMED", nav: ["HOME", "TASKS", "REFS", "DROP"] }
+        };
+
+        function setLang(lang) {
+            localStorage.setItem('fmc_lang', lang);
+            document.documentElement.dir = (lang === 'ar' ? 'rtl' : 'ltr');
+            document.getElementById('txt-balance-lbl').innerText = i18n[lang].balance;
+            document.getElementById('txt-upgrade').innerText = i18n[lang].upgrade;
+            document.getElementById('txt-task-title').innerText = i18n[lang].tasksTitle;
+            document.getElementById('txt-save-wallet').innerText = i18n[lang].saveWall;
+            document.getElementById('daily-title').innerText = i18n[lang].dailyTitle;
+            document.getElementById('daily-note').innerText = i18n[lang].dailyNote;
+            
+            // Check if already claimed to update button text
+            const today = new Date().toLocaleDateString();
+            document.getElementById('claim-btn').innerText = (localStorage.getItem('last_claim_date') === today) ? i18n[lang].claimed : i18n[lang].claim;
+            
+            const navs = document.querySelectorAll('.nav-txt');
+            navs.forEach((n, i) => n.innerText = i18n[lang].nav[i]);
+            
+            document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('btn-' + lang).classList.add('active');
+        }
+
+        // --- Daily Reward System (Once per day) ---
+        function claimDaily() {
+            const today = new Date().toLocaleDateString();
+            const lastClaim = localStorage.getItem('last_claim_date');
+            const lang = localStorage.getItem('fmc_lang') || 'ar';
+
+            if (lastClaim === today) {
+                alert(i18n[lang].claimed);
+                return;
+            }
+
+            balance += 100;
+            localStorage.setItem('last_claim_date', today);
+            updateUI();
+            
+            const btn = document.getElementById('claim-btn');
+            btn.innerText = i18n[lang].claimed;
+            btn.classList.replace('bg-gold', 'bg-gray-600');
+            setTimeout(() => closeM('daily-modal'), 800);
+        }
+
+        // --- Standard Logic ---
+        setInterval(() => { if(energy < 500) energy++; if(autoS > 0) balance += autoS; updateUI(); }, 1000);
+
+        function updateUI() { 
+            document.querySelectorAll('.balance-val').forEach(el => el.innerText = balance.toLocaleString(undefined, {minimumFractionDigits: 2})); 
+            document.getElementById('cum-profit').innerText = cumP.toLocaleString();
+            document.getElementById('rock-day-profit').innerText = rockDayP.toFixed(2);
+        }
+        function nav(btn, t) { document.querySelectorAll('section').forEach(s => s.classList.add('hidden')); document.getElementById('v-'+t).classList.remove('hidden'); document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active')); btn.classList.add('active'); }
+        function openM(id) { document.getElementById(id).style.display = 'flex'; }
+        function closeM(id) { document.getElementById(id).style.display = 'none'; }
+        function tap(e) { if(energy>0){ balance += 0.1; energy--; updateUI(); } }
+        function setU(v, b) { unit = v; document.querySelectorAll('.chip').forEach(c => c.classList.remove('active')); b.classList.add('active'); }
+        
+        function stRep(f) { spRep(); f(); hI = setInterval(f, 100); }
+        function spRep() { if(typeof hI !== 'undefined') clearInterval(hI); }
+        function adjRB(v) { if(!rAct) { rB = Math.max(100, rB + v); document.getElementById('r-bet').innerText = rB; } }
+        function adjAS(v) { if(!rAct) { aS = Math.max(1.1, parseFloat((aS + v).toFixed(1))); document.getElementById('as-val').innerText = aS; } }
+
+        // --- Rocket Logic ---
+        let rB = 100, aS = 2.0, rAct = false, rM = 1.0, rI, pts = [], hasC = false;
+        const cvs = document.getElementById('rocket-canvas'), ctx = cvs.getContext('2d');
+
+        function startRocket() {
+            if(balance < rB || rAct) return;
+            balance -= rB; rAct = true; rM = 1.0; pts = []; hasC = false;
+            cvs.width = cvs.parentElement.offsetWidth; cvs.height = cvs.parentElement.offsetHeight;
+            updateUI();
+            document.getElementById('r-start').classList.add('hidden');
+            document.getElementById('r-cash').classList.remove('hidden');
+            document.getElementById('rock-boom').classList.add('hidden');
+            document.getElementById('rock-mult').classList.remove('gold-beep');
+            document.getElementById('rock-mult').style.color = 'var(--c)';
+
+            let isBig = Math.random() < 0.15;
+            let crashP = isBig ? (Math.random()*40 + 10).toFixed(2) : (Math.random()*3.5 + 1.1).toFixed(2);
+            
+            rI = setInterval(() => {
+                rM += 0.01; let mEl = document.getElementById('rock-mult'); mEl.innerText = rM.toFixed(2) + 'x';
+                if(rM >= 4.0) mEl.classList.add('gold-beep');
+                let x = Math.min(cvs.width - 40, (rM-1)*55), y = cvs.height - 20 - (Math.pow(rM, 1.5) * 9);
+                pts.push({x: x, y: y}); ctx.clearRect(0,0,cvs.width,cvs.height);
+                ctx.beginPath(); ctx.strokeStyle = (rM>=4.0?'#ffd700':'#00f2ff'); ctx.lineWidth = 3;
+                ctx.moveTo(pts[0].x, pts[0].y); for(let p of pts) ctx.lineTo(p.x, p.y); ctx.stroke();
+                let r = document.getElementById('rock-obj'); r.style.left = (x+20)+'px'; r.style.bottom = (cvs.height-y)+'px';
+                
+                if(!hasC && rM >= aS) cashOutRockManual(true);
+                if(rM >= crashP) { clearInterval(rI); rAct = false; document.getElementById('rock-boom').classList.remove('hidden'); addRH(rM.toFixed(2), hasC); setTimeout(() => { document.getElementById('r-start').classList.remove('hidden'); document.getElementById('r-cash').classList.add('hidden'); }, 2000); }
+            }, 60);
+        }
+        function cashOutRockManual(auto = false) { if(hasC || !rAct) return; let win = rB * rM; balance += win; cumP += win; rockDayP += win; hasC = true; document.getElementById('r-cash').classList.add('hidden'); updateUI(); }
+        function addRH(m, w) { let h = document.getElementById('rock-hist'); h.innerHTML = `<div class="px-2 bg-${w?'green':'red'}-600 rounded text-[10px] font-bold text-white">${m}x</div>` + h.innerHTML; }
+        function closeRockM() { if(!rAct) closeM('rock-modal'); }
+
+        // --- Tree Logic ---
+        function buildArena() {
+            const container = document.getElementById('arena');
+            for(let i=0; i<8; i++) {
+                const angle = (i * 45 - 90) * (Math.PI / 180);
+                const node = document.createElement('div');
+                node.className = 'node';
+                node.style.left = `calc(50% + ${Math.cos(angle)*110}px - 30px)`;
+                node.style.top = `calc(50% + ${Math.sin(angle)*110}px - 30px)`;
+                node.innerHTML = `<span>${icons[i]}</span><div class="bet-lbl" id="l${i}">0</div><b style="font-size:7px; color:black; background:gold; padding:0 3px; border-radius:3px; position:absolute; bottom:-5px;">x${mults[i]}</b>`;
+                node.onclick = () => {
+                    if(isLock || balance < unit) return;
+                    if(!node.classList.contains('selected')) { if(selCount >= 6) return; selCount++; node.classList.add('selected'); }
+                    balance -= unit; treeBets[i] += unit;
+                    let b = document.getElementById(`l${i}`); b.innerText = treeBets[i]; b.style.display = 'block'; updateUI();
+                };
+                container.appendChild(node);
+            }
+        }
+        setInterval(() => { if(!isLock) { timer--; document.getElementById('timer').innerText = timer; if(timer <= 0) runDraw(); } }, 1000);
+        function runDraw() {
+            isLock = true; const nodes = document.querySelectorAll('.node'); let c = 0;
+            let l = setInterval(() => { nodes.forEach(n => n.style.borderColor = '#444'); nodes[c % 8].style.borderColor = '#bc13fe'; c++; }, 80);
+            setTimeout(() => {
+                clearInterval(l); const winner = Math.floor(Math.random()*8);
+                nodes.forEach(n => n.style.borderColor = '#444'); nodes[winner].classList.add('winner-final');
+                if(treeBets[winner] > 0) { let wAmt = treeBets[winner]*mults[winner]; balance += wAmt; cumP += wAmt; document.getElementById('win-txt').innerText = "WIN +"+wAmt; }
+                let h = document.getElementById('history-box'); h.innerHTML = `<div class="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center">${icons[winner]}</div>` + h.innerHTML;
+                setTimeout(resetTree, 2500);
+            }, 3000);
+        }
+        function resetTree() { treeBets.fill(0); timer = 30; isLock = false; selCount = 0; document.querySelectorAll('.node').forEach(n => { n.classList.remove('selected', 'winner-final'); n.querySelector('.bet-lbl').style.display='none'; }); document.getElementById('win-txt').innerText=""; updateUI(); }
+
+        window.onload = () => {
+            buildArena(); updateUI();
+            const savedLang = localStorage.getItem('fmc_lang') || 'ar';
+            setLang(savedLang);
+            
+            // Check Daily Status on load
+            const today = new Date().toLocaleDateString();
+            if (localStorage.getItem('last_claim_date') === today) {
+                const btn = document.getElementById('claim-btn');
+                btn.classList.replace('bg-gold', 'bg-gray-600');
+            }
+
+            const rL = document.getElementById('refs-list');
+            [3, 5, 10, 25, 50, 100].forEach((n, i) => { const rewards = [300, 800, 1500, 5000, 12000, 25000]; rL.innerHTML += `<div class="neon-card p-4 flex justify-between mb-2"><span>Invite ${n} Friends</span><span class="text-gold">+${rewards[i]||n*100}</span></div>`; });
+            const tL = document.getElementById('tasks-list');
+            for(let i=1; i<=50; i++) tL.innerHTML += `<div class="neon-card p-4 flex justify-between items-center text-[10px]"><span>Task #${i}: Join Group</span><button class="bg-cyan-600 px-4 py-2 rounded-lg font-black">GO</button></div>`;
+        };
+    </script>
+</body>
+</html>
